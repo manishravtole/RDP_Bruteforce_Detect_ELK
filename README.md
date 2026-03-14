@@ -1,7 +1,3 @@
-# RDP_Bruteforce_Detect_ELK
-This project implements a real-time monitoring and detection system for Remote Desktop Protocol (RDP) brute-force attacks. By leveraging the ELK Stack (Elasticsearch, Logstash, Kibana) and Winlogbeat, the system ingests Windows Security Event logs to identify, visualize, and alert on suspicious login patterns.
-
-
 # 🔴 RDP Brute Force Attack Detection Using ELK Stack
 
 ![SIEM](https://img.shields.io/badge/SIEM-ELK%20Stack-blue?style=for-the-badge&logo=elastic)
@@ -37,7 +33,7 @@ This project implements a real-time monitoring and detection system for Remote D
 
 ## 📖 Project Overview
 
-**Remote Desktop Protocol (RDP)** exposed on port `3389` is one of the most common entry points exploited by attackers. In this project, I:
+**Remote Desktop Protocol (RDP)** exposed on port `3389` is one of the most commonly abused entry points by attackers. In this project, I:
 
 - Simulated a real-world **RDP brute force attack** using Hydra from Kali Linux
 - Shipped Windows Security Event Logs to **Elasticsearch** using Winlogbeat
@@ -96,7 +92,7 @@ This project implements a real-time monitoring and detection system for Remote D
 
 ## Phase 1 — Attack Simulation (Kali Linux)
 
-The attack was launched from Kali Linux using **Hydra**, targeting the Windows victim's RDP service.
+The attack was launched from Kali Linux using **Hydra**, targeting the Windows victim's RDP service on port 3389.
 
 ### Attack Command
 
@@ -242,43 +238,45 @@ event.code: ("4624" OR "4625") AND winlog.event_data.LogonType: "10"
 
 ---
 
-### 2. Kibana Discover — Filtered by Attacker IP (192.168.0.124)
-
-> Filter: `source.ip: 192.168.0.124` | Confirms all 123 events came from the Kali attacker machine
-
-![Kibana IP Filter](screenshots/ip_with_ec.png)
-
----
-
-### 3. Area Chart — Attack Burst Timeline
+### 2. Area Chart — Attack Burst Timeline
 
 > Lens Area Chart | Breakdown: Top 5 values of `event.code` | X-axis: `@timestamp` per 30 seconds
 
 ![Area Chart Attack Timeline](screenshots/areachart.png)
 
-> 📌 The sharp spike at **14:40** represents the Hydra brute force burst. Classic automated attack signature.
+> 📌 The sharp spike at **14:40** represents the Hydra brute force burst — a classic automated attack signature.
 
 ---
 
-### 4. Bar Chart — Event Volume by Source IP
+### 3. Kibana Discover — Filtered by Attacker IP (source.ip: 192.168.0.124)
 
-> Confirms 123 events from a single IP — definitive brute force indicator
+> Filter: `source.ip: 192.168.0.124` | Document panel confirms `event.action: logon-failed`, `event.outcome: failure`, `event.provider: Microsoft-Windows-Security-Auditing`
 
-![Bar Chart Source IP](screenshots/category.png)
+![Kibana Discover Filtered by Source IP](screenshots/category.png)
 
 ---
 
-### 5. Bar Chart — Top 3 Values of Event Code
+### 4. Kibana Discover — IP Field Inspection + Event Code Confirmation
 
-> All 123 brute force events (4625) tied to IP 192.168.0.124
+> Field search: `ip` | Filter: `source.ip: 192.168.0.124` | Document panel confirms `event.code: 4625`
 
-![Event Code Bar Chart](screenshots/visulipie.png)
+![Kibana IP Field Inspection](screenshots/dashboard.png)
+
+---
+
+### 5. Bar Chart — Top 3 Values of Event Code by Source IP
+
+> All 123 brute force events (event code **4625**) linked to a single source IP: `192.168.0.124` — confirming the attacker machine
+
+![Bar Chart Top 3 Event Codes by IP](screenshots/ip_with_ec.png)
+
+> 📌 A single IP generating 123 failed logins in under a minute is a **definitive indicator of automated brute force activity**.
 
 ---
 
 ### 6. Pie Chart — Event Code Distribution
 
-> Overall distribution of all Windows Security events during the attack window
+> Lens Pie Chart | Slice by: Top 5 values of `event.code` | Metric: Count of Records
 
 ![Pie Chart Event Distribution](screenshots/visulipie.png)
 
@@ -365,10 +363,11 @@ rdp-bruteforce-detection-elk/
 └── screenshots/
     ├── bruteforce.png               ← Hydra attack from Kali Linux
     ├── 4625Elastic.png              ← Kibana Discover — 123 failed logins
-    ├── ip_with_ec.png               ← Kibana filtered by attacker IP
-    ├── areachart.png                ← Attack timeline (area chart)
-    ├── category.png                 ← Event volume bar chart
-    └── visulipie.png                ← Pie chart — event distribution
+    ├── areachart.png                ← Attack timeline area chart
+    ├── category.png                 ← Kibana Discover filtered by source IP
+    ├── dashboard.png                ← IP field inspection + event code view
+    ├── ip_with_ec.png               ← Bar chart — Top 3 event codes by IP
+    └── visulipie.png                ← Pie chart — event code distribution
 ```
 
 ---
